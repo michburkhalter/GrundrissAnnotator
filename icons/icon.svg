@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Petrol colored background -->
+  <rect width="512" height="512" fill="#008B8B"/>
+  
+  <!-- F1 text in white centered -->
+  <text x="256" y="280" text-anchor="middle" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="180" font-weight="bold">F1</text>
+</svg>
