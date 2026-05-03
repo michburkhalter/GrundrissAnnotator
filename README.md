@@ -1,6 +1,10 @@
 # Grundriss Annotator
 
-Ein moderner, browser-basierter Annotator für Grundrisse und architektonische Pläne. Mit diesem Tool können Fenster, Heizkörper und Türen in PDF-Dokumenten markiert und nummeriert werden.
+## 🌐 [**Live Demo starten**](https://username.github.io/grundriss-annotator/grundriss-annotator.html) ⚡
+
+*Ein moderner, browser-basierter Annotator für Grundrisse und architektonische Pläne. Mit diesem Tool können Fenster, Heizkörper und Türen in PDF-Dokumenten markiert und nummeriert werden.*
+
+---
 
 ## 🚀 Hauptfunktionen
 
