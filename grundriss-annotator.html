@@ -386,6 +386,7 @@ let annotations = {}, fCount = {}, hCount = {}, tCount = {};
 let mode = 'fenster';
 let dragging = null;
 let loadedFileNames = [];
+let pdfFileData = [];
 let totalPages = 0;
 
 const pdfCanvas  = document.getElementById('pdf-canvas');
@@ -635,20 +636,33 @@ document.getElementById('file-input').addEventListener('change', async (e) => {
   try {
     setStatus('Lade PDFs...', false);
     
-    // Load all PDFs
+    // Load all PDFs and store file data
     const loadPromises = files.map(async file => {
       const arrayBuffer = await file.arrayBuffer();
+      
+      // Convert to base64 in chunks to handle large files
+      const uint8Array = new Uint8Array(arrayBuffer);
+      let binary = '';
+      const chunkSize = 0x8000; // 32KB chunks
+      for (let i = 0; i < uint8Array.length; i += chunkSize) {
+        const chunk = uint8Array.subarray(i, i + chunkSize);
+        binary += String.fromCharCode.apply(null, chunk);
+      }
+      const base64 = btoa(binary);
+      
       return {
         doc: await pdfjsLib.getDocument({ data: arrayBuffer }).promise,
-        name: file.name.replace(/\.pdf$/i, '')
+        name: file.name.replace(/\.pdf$/i, ''),
+        data: base64
       };
     });
     
     const loadedDocs = await Promise.all(loadPromises);
     
-    // Store loaded documents and names
+    // Store loaded documents, names, and file data
     pdfDocs = loadedDocs.map(item => item.doc);
     loadedFileNames = loadedDocs.map(item => item.name);
+    pdfFileData = loadedDocs.map(item => item.data);
     
     // Calculate total pages
     totalPages = pdfDocs.reduce((sum, doc) => sum + doc.numPages, 0);
@@ -713,9 +727,10 @@ document.getElementById('btn-save-project').addEventListener('click', () => {
   if (pdfDocs.length === 0) { alert('Bitte zuerst PDFs laden.'); return; }
   
   const projectData = {
-    version: '1.0',
+    version: '2.0',
     timestamp: new Date().toISOString(),
     fileNames: loadedFileNames,
+    pdfData: pdfFileData,
     totalPages: totalPages,
     currentPage: currentPage,
     zoom: zoom,
@@ -744,6 +759,7 @@ document.getElementById('project-input').addEventListener('change', async (e) =>
   const file = e.target.files[0]; if (!file) return;
   
   try {
+    setStatus('Lade Projekt...', false);
     const text = await file.text();
     const projectData = JSON.parse(text);
     
@@ -762,18 +778,51 @@ document.getElementById('project-input').addEventListener('change', async (e) =>
     hCount = projectData.hCount || {};
     tCount = projectData.tCount || {};
     
-    // Update UI
-    const fileDisplay = loadedFileNames.length === 1 
-      ? loadedFileNames[0] + '.pdf'
-      : `${loadedFileNames.length} PDFs (${loadedFileNames[0]}...${loadedFileNames[loadedFileNames.length-1]}.pdf)`;
-    
-    document.getElementById('filename-display').textContent = fileDisplay + ' [Projekt geladen]';
-    sbFile.textContent = fileDisplay + ' [Projekt geladen]';
-    
-    // Note: PDFs need to be reloaded manually - this only restores annotations
-    alert('Projekt geladen! Bitte laden Sie die gleichen PDF-Dateien erneut, um die Annotationen zu sehen.');
-    
-    setStatus('Projekt geladen', true);
+    // Load PDFs from stored data if available (v2.0+)
+    if (projectData.version >= '2.0' && projectData.pdfData) {
+      setStatus('Lade PDFs aus Projekt...', false);
+      
+      const loadPromises = projectData.pdfData.map(async (base64Data, index) => {
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const arrayBuffer = bytes.buffer;
+        return await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      });
+      
+      pdfDocs = await Promise.all(loadPromises);
+      pdfFileData = projectData.pdfData;
+      
+      // Update UI to show fully loaded project
+      const fileDisplay = loadedFileNames.length === 1 
+        ? loadedFileNames[0] + '.pdf'
+        : `${loadedFileNames.length} PDFs (${loadedFileNames[0]}...${loadedFileNames[loadedFileNames.length-1]}.pdf)`;
+      
+      document.getElementById('filename-display').textContent = fileDisplay;
+      sbFile.textContent = fileDisplay;
+      
+      dropHint.style.display = 'none';
+      canvasInner.style.display = 'inline-block';
+      sbDot.classList.add('ok');
+      
+      await renderPage();
+      updateLegend();
+      setStatus('Projekt vollständig geladen', true);
+      
+    } else {
+      // Legacy project (v1.0) - manual PDF reload required
+      const fileDisplay = loadedFileNames.length === 1 
+        ? loadedFileNames[0] + '.pdf'
+        : `${loadedFileNames.length} PDFs (${loadedFileNames[0]}...${loadedFileNames[loadedFileNames.length-1]}.pdf)`;
+      
+      document.getElementById('filename-display').textContent = fileDisplay + ' [Projekt geladen]';
+      sbFile.textContent = fileDisplay + ' [Projekt geladen]';
+      
+      alert('Legacy-Projekt geladen! Bitte laden Sie die gleichen PDF-Dateien erneut, um die Annotationen zu sehen.');
+      setStatus('Projekt geladen (PDFs manuell nachladen)', true);
+    }
     
   } catch (error) {
     console.error('Error loading project:', error);
