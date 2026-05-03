@@ -2,7 +2,7 @@
   "name": "Grundriss Annotator",
   "short_name": "Grundriss",
   "description": "Modern browser-based annotation tool for floor plans and architectural drawings",
-  "start_url": "./grundriss-annotator.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f8f9fa",
   "theme_color": "#008B8B",
@@ -54,7 +54,7 @@
       "name": "Neues Projekt",
       "short_name": "Neu",
       "description": "Starte ein neues Annotationsprojekt",
-      "url": "./grundriss-annotator.html?action=new",
+      "url": "./index.html?action=new",
       "icons": [
         {
           "src": "icons/launchericon-96x96.png",
@@ -66,7 +66,7 @@
       "name": "Projekt laden",
       "short_name": "Laden",
       "description": "Lade ein gespeichertes Projekt",
-      "url": "./grundriss-annotator.html?action=load",
+      "url": "./index.html?action=load",
       "icons": [
         {
           "src": "icons/launchericon-96x96.png",

@@ -1,7 +1,7 @@
 const CACHE_NAME = 'grundriss-annotator-v1.0.0';
 const urlsToCache = [
   './',
-  './grundriss-annotator.html',
+  './index.html',
   './manifest.json',
   'https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap',
   'https://fonts.gstatic.com/s/dmmono/v15/aFTU7PB1QTsUXWFKdQyW1A.woff2',
@@ -82,7 +82,7 @@ self.addEventListener('fetch', event => {
           
           // Return offline page for HTML requests
           if (event.request.destination === 'document') {
-            return caches.match('./grundriss-annotator.html');
+            return caches.match('./index.html');
           }
         });
       })
@@ -123,6 +123,6 @@ self.addEventListener('push', event => {
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   event.waitUntil(
-    clients.openWindow('./grundriss-annotator.html')
+    clients.openWindow('./index.html')
   );
 });
