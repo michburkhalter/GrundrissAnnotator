@@ -10,6 +10,41 @@ Licensed under the MIT License
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Grundriss Annotator</title>
+
+<!-- PWA Meta Tags -->
+<meta name="description" content="Modern browser-based annotation tool for floor plans and architectural drawings">
+<meta name="theme-color" content="#008B8B">
+<meta name="background-color" content="#f8f9fa">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Grundriss">
+<meta name="application-name" content="Grundriss Annotator">
+<meta name="msapplication-TileColor" content="#008B8B">
+<meta name="msapplication-config" content="./browserconfig.xml">
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="./manifest.json">
+
+<!-- Apple Touch Icons -->
+<link rel="apple-touch-icon" sizes="72x72" href="./icons/icon-72x72.png">
+<link rel="apple-touch-icon" sizes="96x96" href="./icons/icon-96x96.png">
+<link rel="apple-touch-icon" sizes="128x128" href="./icons/icon-128x128.png">
+<link rel="apple-touch-icon" sizes="144x144" href="./icons/icon-144x144.png">
+<link rel="apple-touch-icon" sizes="152x152" href="./icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="./icons/icon-192x192.png">
+<link rel="apple-touch-icon" sizes="384x384" href="./icons/icon-384x384.png">
+<link rel="apple-touch-icon" sizes="512x512" href="./icons/icon-512x512.png">
+
+<!-- Standard Icons -->
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/icon-32x32.png">
+<link rel="icon" type="image/png" sizes="96x96" href="./icons/icon-96x96.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192x192.png">
+
+<!-- Microsoft Tiles -->
+<meta name="msapplication-square70x70logo" content="./icons/icon-72x72.png">
+<meta name="msapplication-square150x150logo" content="./icons/icon-152x152.png">
+<meta name="msapplication-square310x310logo" content="./icons/icon-310x310.png">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -1084,6 +1119,89 @@ document.getElementById('btn-export').addEventListener('click', async () => {
 });
 
 window.addEventListener('resize', () => { if (pdfDocs.length > 0) drawAnnotations(); });
+
+// --- PWA Service Worker Registration ---
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(registration => {
+        console.log('SW registered: ', registration);
+        
+        // Check for updates
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New version available
+              if (confirm('Neue Version verfügbar! App neu laden?')) {
+                window.location.reload();
+              }
+            }
+          });
+        });
+      })
+      .catch(registrationError => {
+        console.log('SW registration failed: ', registrationError);
+      });
+  });
+}
+
+// --- PWA Install Prompt ---
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  
+  // Show install button or banner
+  const installButton = document.createElement('button');
+  installButton.textContent = '📱 App installieren';
+  installButton.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #008B8B;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,139,139,0.3);
+    transition: all 0.3s ease;
+  `;
+  
+  installButton.addEventListener('mouseenter', () => {
+    installButton.style.background = '#006666';
+    installButton.style.transform = 'translateY(-2px)';
+  });
+  
+  installButton.addEventListener('mouseleave', () => {
+    installButton.style.background = '#008B8B';
+    installButton.style.transform = 'translateY(0)';
+  });
+  
+  installButton.addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        console.log('User accepted the install prompt');
+      }
+      deferredPrompt = null;
+      installButton.remove();
+    }
+  });
+  
+  document.body.appendChild(installButton);
+});
+
+// --- Handle App Installed Event ---
+window.addEventListener('appinstalled', (evt) => {
+  console.log('Grundriss Annotator was installed');
+  setStatus('App erfolgreich installiert! 🎉', true);
+});
+
 </script>
 </body>
 </html>

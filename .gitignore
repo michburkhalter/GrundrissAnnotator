@@ -84,6 +84,7 @@ yarn.lock
 !package-lock.json
 !tsconfig.json
 !*.config.js
+!manifest.json
 
 # Exported Files (user data)
 *_annotiert.pdf
