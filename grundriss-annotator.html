@@ -211,6 +211,8 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
+    max-height: 100%;
+    overflow: hidden;
   }
 
   .panel {
@@ -219,6 +221,11 @@
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow);
     padding: 14px;
+  }
+  .panel[style*="flex:1"] {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
   }
   .panel-title {
     font-size: 11px;
@@ -233,8 +240,10 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    max-height: 300px;
+    flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
   }
   .legend-item {
     display: flex;
@@ -243,9 +252,16 @@
     padding: 5px 8px;
     border-radius: var(--radius);
     font-size: 13px;
-    transition: background 0.1s;
+    transition: background 0.1s, transform 0.1s;
   }
-  .legend-item:hover { background: var(--bg); }
+  .legend-item:hover { 
+    background: var(--bg); 
+    transform: translateX(2px);
+  }
+  .legend-item:active {
+    transform: translateX(3px);
+    background: var(--border);
+  }
   .legend-dot {
     width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
   }
@@ -278,9 +294,22 @@
   .mode-dot.d { background: var(--accent-h); }
 
   /* --- Scrollbar --- */
-  #legend-list::-webkit-scrollbar { width: 4px; }
-  #legend-list::-webkit-scrollbar-track { background: transparent; }
-  #legend-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  #legend-list::-webkit-scrollbar { width: 6px; }
+  #legend-list::-webkit-scrollbar-track { 
+    background: var(--bg); 
+    border-radius: 3px;
+  }
+  #legend-list::-webkit-scrollbar-thumb { 
+    background: var(--border-strong); 
+    border-radius: 3px;
+    transition: background 0.2s;
+  }
+  #legend-list::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+  }
+  #legend-list::-webkit-scrollbar-thumb:active {
+    background: var(--text);
+  }
 
   /* --- Status bar --- */
   #statusbar {
@@ -438,18 +467,48 @@ function screenToCanvas(sx, sy) {
   };
 }
 
-function drawMarker(ctx, ax, ay, label, type, r) {
+function drawMarker(ctx, ax, ay, label, type, r, isHighlighted) {
   r = r || RADIUS;
   const c = COLORS[type];
-  ctx.beginPath();
-  ctx.arc(ax, ay, r, 0, Math.PI * 2);
-  ctx.fillStyle = c.fill;
-  ctx.fill();
-  ctx.strokeStyle = c.stroke;
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.fillStyle = c.text;
-  ctx.font = `bold ${label.length > 3 ? 9 : 10}px 'DM Mono', monospace`;
+  
+  if (isHighlighted) {
+    // High-contrast highlighting
+    ctx.beginPath();
+    ctx.arc(ax, ay, r + 8, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255, 255, 0, 0.3)'; // Yellow highlight background
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.arc(ax, ay, r + 8, 0, Math.PI * 2);
+    ctx.strokeStyle = '#FFD700'; // Gold outline
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    
+    // Draw the original marker slightly larger
+    ctx.beginPath();
+    ctx.arc(ax, ay, r + 3, 0, Math.PI * 2);
+    ctx.fillStyle = c.fill;
+    ctx.fill();
+    ctx.strokeStyle = '#FF0000'; // Red outline for high contrast
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    
+    // Enhanced text
+    ctx.fillStyle = '#000000'; // Black text for high contrast
+    ctx.font = `bold ${label.length > 3 ? 11 : 12}px 'DM Mono', monospace`;
+  } else {
+    // Normal marker
+    ctx.beginPath();
+    ctx.arc(ax, ay, r, 0, Math.PI * 2);
+    ctx.fillStyle = c.fill;
+    ctx.fill();
+    ctx.strokeStyle = c.stroke;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = c.text;
+    ctx.font = `bold ${label.length > 3 ? 9 : 10}px 'DM Mono', monospace`;
+  }
+  
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(label, ax, ay);
@@ -462,7 +521,7 @@ function drawAnnotations(highlightIdx) {
   annoCanvas.style.height = pdfCanvas.style.height;
   annoCtx.clearRect(0, 0, annoCanvas.width, annoCanvas.height);
   getPageAnnos().forEach((a, i) => {
-    drawMarker(annoCtx, a.x, a.y, a.label, a.type, i === highlightIdx ? RADIUS + 3 : RADIUS);
+    drawMarker(annoCtx, a.x, a.y, a.label, a.type, RADIUS, i === highlightIdx);
   });
 }
 
@@ -595,13 +654,37 @@ function updateLegend() {
   if (!all.length) { list.innerHTML = '<div class="empty-hint">Noch keine Annotationen</div>'; return; }
   all.sort((a,b) => a.page - b.page || a.label.localeCompare(b.label));
   const dotColor = { fenster:'#2563EB', heizung:'#DC2626', tuer:'#059669' };
-  list.innerHTML = all.map(a => {
-    return `<div class="legend-item">
+  list.innerHTML = all.map((a, index) => {
+    return `<div class="legend-item" style="cursor:pointer;" onclick="goToAnnotation(${a.page}, '${a.label}', '${a.type}')">
       <div class="legend-dot" style="background:${dotColor[a.type]}"></div>
       <span class="legend-label">${a.label}</span>
       <span class="legend-page">S.${a.page}</span>
     </div>`;
   }).join('');
+}
+
+// --- Navigation to Annotation ---
+async function goToAnnotation(page, label, type) {
+  if (currentPage !== page) {
+    currentPage = page;
+    await renderPage();
+  }
+  
+  // Find the annotation index on the current page
+  const annos = getPageAnnos(page);
+  const annoIndex = annos.findIndex(a => a.label === label && a.type === type);
+  
+  if (annoIndex !== -1) {
+    // Highlight the annotation temporarily
+    drawAnnotations(annoIndex);
+    
+    // Remove highlight after 2 seconds
+    setTimeout(() => {
+      drawAnnotations();
+    }, 2000);
+    
+    setStatus(`Annotation ${label} auf Seite ${page} hervorgehoben`, true);
+  }
 }
 
 // --- Mode ---
