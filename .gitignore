@@ -1,0 +1,150 @@
+# Grundriss Annotator - .gitignore
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Editor and IDE Files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.netbeans/
+nbproject/
+*.code-workspace
+
+# Logs and Runtime
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Dependency Directories (if added later)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build Outputs (if added later)
+dist/
+build/
+out/
+*.tgz
+*.tar.gz
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Cache and Temporary Files
+.cache/
+*.tmp
+*.temp
+temp/
+.cache/
+
+# Test Coverage (if added later)
+coverage/
+*.lcov
+.nyc_output/
+
+# Package Manager Lock Files (if added later)
+package-lock.json
+yarn.lock
+
+# Backup Files
+*.bak
+*.backup
+*.old
+
+# User-specific Files
+*.user
+*.user.js
+*.user.css
+
+# PDF Files (user data - should not be in version control)
+*.pdf
+!example.pdf
+
+# Project Files (user data - should not be in version control)
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!*.config.js
+
+# Exported Files (user data)
+*_annotiert.pdf
+*_export.pdf
+grundrisse_zusammengesetzt_annotiert.pdf
+
+# Project Files (user data)
+*_projekt.json
+project_backup_*.json
+
+# Browser-specific Files
+*.crx
+*.xpi
+
+# Security Files
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Documentation Build (if added later)
+docs/_build/
+site/
+
+# Analytics and Monitoring
+analytics/
+monitoring/
+
+# Local Development
+.local/
+localhost/
+127.0.0.1/
+
+# MacOS
+.AppleDouble
+.LSOverride
+
+# Windows
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# IDE specific files
+*.sublime-project
+*.sublime-workspace
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
+
+# Keep these files (exceptions to above rules)
+!README.md
+!LICENSE
+!grundriss-annotator.html
+!.gitignore
