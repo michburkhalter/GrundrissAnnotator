@@ -479,15 +479,15 @@ function drawMarker(ctx, ax, ay, label, type, r, isHighlighted) {
   const c = COLORS[type];
   
   if (isHighlighted) {
-    // High-contrast highlighting
+    // Petrol highlighting
     ctx.beginPath();
     ctx.arc(ax, ay, r + 8, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255, 255, 0, 0.3)'; // Yellow highlight background
+    ctx.fillStyle = 'rgba(0, 128, 128, 0.3)'; // Petrol highlight background
     ctx.fill();
     
     ctx.beginPath();
     ctx.arc(ax, ay, r + 8, 0, Math.PI * 2);
-    ctx.strokeStyle = '#FFD700'; // Gold outline
+    ctx.strokeStyle = '#008B8B'; // Dark petrol outline
     ctx.lineWidth = 3;
     ctx.stroke();
     
@@ -496,12 +496,12 @@ function drawMarker(ctx, ax, ay, label, type, r, isHighlighted) {
     ctx.arc(ax, ay, r + 3, 0, Math.PI * 2);
     ctx.fillStyle = c.fill;
     ctx.fill();
-    ctx.strokeStyle = '#FF0000'; // Red outline for high contrast
+    ctx.strokeStyle = '#006666'; // Deep petrol outline for high contrast
     ctx.lineWidth = 3;
     ctx.stroke();
     
     // Enhanced text
-    ctx.fillStyle = '#000000'; // Black text for high contrast
+    ctx.fillStyle = '#FFFFFF'; // White text for high contrast on petrol
     ctx.font = `bold ${label.length > 3 ? 11 : 12}px 'DM Mono', monospace`;
   } else {
     // Normal marker
