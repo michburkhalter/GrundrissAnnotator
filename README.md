@@ -1,6 +1,6 @@
 # Grundriss Annotator
 
-## 🌐 [**Live Demo starten**](https://michburkhalter.github.io/GrundrissAnnotator/) ⚡
+## 🌐 [**Live Demo starten**](https://michburkhalter.github.io/GrundrissAnnotator/grundriss-annotator) ⚡
 
 *Ein moderner, browser-basierter Annotator für Grundrisse und architektonische Pläne. Mit diesem Tool können Fenster, Heizkörper und Türen in PDF-Dokumenten markiert und nummeriert werden.*
 
