@@ -359,6 +359,7 @@
   <button class="btn btn-icon" id="next-page">▶</button>
   <div class="t-sep"></div>
   <button class="btn danger" id="btn-undo">↩ Rückgängig</button>
+  <button class="btn" id="btn-renumber">🔢 Neu nummerieren</button>
   <div class="t-sep"></div>
   <button class="btn" id="btn-save-project">💾 Projekt speichern</button>
   <label class="btn" style="position:relative;">
@@ -592,7 +593,9 @@ function startInteraction(e) {
       if (a.type === 'fenster' && fCount[currentPage] > 0) fCount[currentPage]--;
       if (a.type === 'heizung' && hCount[currentPage] > 0) hCount[currentPage]--;
       if (a.type === 'tuer'    && tCount[currentPage] > 0) tCount[currentPage]--;
-      drawAnnotations(); updateLegend();
+      
+      // Auto-renumber to remove gaps
+      renumberAnnotations();
     }
     return;
   }
@@ -685,6 +688,78 @@ async function goToAnnotation(page, label, type) {
     
     setStatus(`Annotation ${label} auf Seite ${page} hervorgehoben`, true);
   }
+}
+
+// --- Renumber Annotations ---
+function renumberAnnotations() {
+  // Collect all annotations by type
+  const allAnnotations = [];
+  Object.entries(annotations).forEach(([page, pageAnnos]) => {
+    pageAnnos.forEach(anno => {
+      allAnnotations.push({ ...anno, page: parseInt(page) });
+    });
+  });
+  
+  // Sort by type and then by page to maintain consistent ordering
+  const typeOrder = { fenster: 1, heizung: 2, tuer: 3 };
+  allAnnotations.sort((a, b) => {
+    if (a.type !== b.type) {
+      return typeOrder[a.type] - typeOrder[b.type];
+    }
+    return a.page - b.page;
+  });
+  
+  // Reset counters
+  const newFCount = {};
+  const newHCount = {};
+  const newTCount = {};
+  
+  // Renumber annotations
+  allAnnotations.forEach(anno => {
+    const page = anno.page;
+    let newLabel;
+    
+    if (anno.type === 'fenster') {
+      if (!newFCount[page]) newFCount[page] = 0;
+      newFCount[page]++;
+      newLabel = `F${String(Object.values(newFCount).reduce((sum, count) => sum + count, 0)).padStart(2,'0')}`;
+    } else if (anno.type === 'heizung') {
+      if (!newHCount[page]) newHCount[page] = 0;
+      newHCount[page]++;
+      newLabel = `HK${String(Object.values(newHCount).reduce((sum, count) => sum + count, 0)).padStart(2,'0')}`;
+    } else if (anno.type === 'tuer') {
+      if (!newTCount[page]) newTCount[page] = 0;
+      newTCount[page]++;
+      newLabel = `T${String(Object.values(newTCount).reduce((sum, count) => sum + count, 0)).padStart(2,'0')}`;
+    }
+    
+    // Update the annotation label
+    anno.label = newLabel;
+  });
+  
+  // Update the annotations object with new labels
+  const newAnnotations = {};
+  allAnnotations.forEach(anno => {
+    if (!newAnnotations[anno.page]) newAnnotations[anno.page] = [];
+    newAnnotations[anno.page].push({
+      type: anno.type,
+      x: anno.x,
+      y: anno.y,
+      label: anno.label,
+      page: anno.page
+    });
+  });
+  
+  // Update global state
+  annotations = newAnnotations;
+  fCount = newFCount;
+  hCount = newHCount;
+  tCount = newTCount;
+  
+  // Refresh display
+  drawAnnotations();
+  updateLegend();
+  setStatus('Annotationen neu nummeriert', true);
 }
 
 // --- Mode ---
@@ -801,7 +876,21 @@ document.getElementById('btn-undo').addEventListener('click', () => {
     if (last.type === 'fenster' && fCount[currentPage] > 0) fCount[currentPage]--;
     if (last.type === 'heizung' && hCount[currentPage] > 0) hCount[currentPage]--;
     if (last.type === 'tuer'    && tCount[currentPage] > 0) tCount[currentPage]--;
-    drawAnnotations(); updateLegend();
+    
+    // Auto-renumber to remove gaps
+    renumberAnnotations();
+  }
+});
+
+// --- Renumber ---
+document.getElementById('btn-renumber').addEventListener('click', () => {
+  if (Object.keys(annotations).length === 0 || Object.values(annotations).every(arr => arr.length === 0)) {
+    alert('Keine Annotationen zum Neu nummerieren gefunden.');
+    return;
+  }
+  
+  if (confirm('Möchten Sie wirklich alle Annotationen neu nummerieren? Dies entfernt Lücken in der Nummerierung.')) {
+    renumberAnnotations();
   }
 });
 
