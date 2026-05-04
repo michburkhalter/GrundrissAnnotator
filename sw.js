@@ -41,50 +41,53 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Fetch Strategy: Cache First, Network Fallback
+// Fetch Strategy: Network First, Cache Fallback
 self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then(response => {
-        // Cache hit - return response
-        if (response) {
+        // Check if valid response
+        if (!response || response.status !== 200 || response.type !== 'basic') {
           return response;
         }
 
-        // Clone the request
-        const fetchRequest = event.request.clone();
+        // Clone the response for caching
+        const responseToCache = response.clone();
 
-        return fetch(fetchRequest).then(
-          response => {
-            // Check if valid response
-            if (!response || response.status !== 200 || response.type !== 'basic') {
+        // Cache successful responses (except external resources)
+        if (event.request.url.startsWith('http') && 
+            !event.request.url.includes('fonts.googleapis.com') &&
+            !event.request.url.includes('cdnjs.cloudflare.com')) {
+          caches.open(CACHE_NAME)
+            .then(cache => {
+              cache.put(event.request, responseToCache);
+            });
+        }
+
+        return response;
+      })
+      .catch(error => {
+        // Network failed - try cache fallback
+        console.log('Network failed, trying cache:', error);
+        
+        return caches.match(event.request)
+          .then(response => {
+            // Return cached version if available
+            if (response) {
               return response;
             }
 
-            // Clone the response
-            const responseToCache = response.clone();
-
-            // Cache successful responses
-            if (event.request.url.startsWith('http') && 
-                !event.request.url.includes('fonts.googleapis.com') &&
-                !event.request.url.includes('cdnjs.cloudflare.com')) {
-              caches.open(CACHE_NAME)
-                .then(cache => {
-                  cache.put(event.request, responseToCache);
-                });
+            // Return offline page for HTML requests if no cache
+            if (event.request.destination === 'document') {
+              return caches.match('https://michburkhalter.github.io/GrundrissAnnotator/index.html');
             }
-
-            return response;
-          }
-        ).catch(error => {
-          // Handle network errors
-          console.error('Fetch failed:', error);
-          
-          // Return offline page for HTML requests
-          if (event.request.destination === 'document') {
-            return caches.match('https://michburkhalter.github.io/GrundrissAnnotator/index.html');
-          }
-        });
+            
+            // Return error for other requests
+            return new Response('Offline - No cached version available', {
+              status: 503,
+              statusText: 'Service Unavailable'
+            });
+          });
       })
   );
 });
