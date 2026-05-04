@@ -11,6 +11,14 @@
   "lang": "de",
   "dir": "ltr",
   "categories": ["productivity", "utilities", "business"],
+  "file_handlers": [
+    {
+      "action": "https://michburkhalter.github.io/GrundrissAnnotator/index.html?action=load",
+      "accept": {
+        "grundrissannotator": []
+      }
+    }
+  ],
   "icons": [
     {
       "src": "https://michburkhalter.github.io/GrundrissAnnotator/icons/launchericon-48x48.png",
