@@ -374,7 +374,7 @@ Licensed under the MIT License
 <body>
 
 <header>
-  <div class="logo"><span>Grundriss</span> Annotator</div>
+  <div class="logo"><span>Grundriss</span> Annotator v<span id="app-version">1.0.0</span></div>
   <div class="sep"></div>
   <div id="filename-display">Keine Datei geladen</div>
 </header>
@@ -452,6 +452,14 @@ Licensed under the MIT License
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
+// Version - Increment on each build
+const APP_VERSION = '1.0.0';
+
+// Set version display
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('app-version').textContent = APP_VERSION;
+});
+
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 let pdfDocs = [], currentPage = 1, zoom = 1.0;
