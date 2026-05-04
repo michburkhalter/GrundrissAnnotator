@@ -388,6 +388,8 @@ Licensed under the MIT License
   <button class="btn active" id="btn-fenster">◻ Fenster</button>
   <button class="btn" id="btn-heizung">▣ Heizkörper</button>
   <button class="btn" id="btn-tuer">⬡ Tür</button>
+  <button class="btn" id="btn-haustechnik">⚙ Haustechnik</button>
+  <button class="btn" id="btn-diverses">◆ Diverses</button>
   <button class="btn" id="btn-move">✥ Verschieben</button>
   <button class="btn" id="btn-select">✕ Löschen</button>
   <div class="t-sep"></div>
@@ -453,7 +455,7 @@ Licensed under the MIT License
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 let pdfDocs = [], currentPage = 1, zoom = 1.0;
-let annotations = {}, fCount = {}, hCount = {}, tCount = {};
+let annotations = {}, fCount = {}, hCount = {}, tCount = {}, htCount = {}, dCount = {};
 let mode = 'fenster';
 let dragging = null;
 let loadedFileNames = [];
@@ -479,13 +481,17 @@ const RADIUS = 14;
 const COLORS = {
   fenster: { fill:'#EFF6FF', stroke:'#2563EB', text:'#1D4ED8' },
   heizung: { fill:'#FEF2F2', stroke:'#DC2626', text:'#B91C1C' },
-  tuer:    { fill:'#ECFDF5', stroke:'#059669', text:'#047857' }
+  tuer:    { fill:'#ECFDF5', stroke:'#059669', text:'#047857' },
+  haustechnik: { fill:'#FFF7ED', stroke:'#EA580C', text:'#C2410C' },
+  diverses: { fill:'#F3E8FF', stroke:'#7C3AED', text:'#6D28D9' }
 };
 
 const modeConfig = {
   fenster: { text:'Fenster setzen',     dot:'f', cursor:'crosshair' },
   heizung: { text:'Heizkörper setzen',  dot:'h', cursor:'crosshair' },
   tuer:    { text:'Tür setzen',         dot:'t', cursor:'crosshair' },
+  haustechnik: { text:'Haustechnik setzen', dot:'ht', cursor:'crosshair' },
+  diverses: { text:'Diverses setzen',   dot:'d', cursor:'crosshair' },
   move:    { text:'Verschieben',         dot:'m', cursor:'grab' },
   select:  { text:'Löschen',            dot:'d', cursor:'pointer' }
 };
@@ -634,13 +640,15 @@ function startInteraction(e) {
       if (a.type === 'fenster' && fCount[currentPage] > 0) fCount[currentPage]--;
       if (a.type === 'heizung' && hCount[currentPage] > 0) hCount[currentPage]--;
       if (a.type === 'tuer'    && tCount[currentPage] > 0) tCount[currentPage]--;
+      if (a.type === 'haustechnik' && htCount[currentPage] > 0) htCount[currentPage]--;
+      if (a.type === 'diverses' && dCount[currentPage] > 0) dCount[currentPage]--;
       
       // Auto-renumber to remove gaps
       renumberAnnotations();
     }
     return;
   }
-  if ((mode === 'fenster' || mode === 'heizung' || mode === 'tuer') && idx < 0) {
+  if ((mode === 'fenster' || mode === 'heizung' || mode === 'tuer' || mode === 'haustechnik' || mode === 'diverses') && idx < 0) {
     const p = currentPage;
     let label, type;
     if (mode === 'fenster')      { 
@@ -655,11 +663,23 @@ function startInteraction(e) {
       label = `HK${String(nextHCount).padStart(2,'0')}`; 
       type = 'heizung'; 
     }
-    else { 
+    else if (mode === 'tuer') { 
       const nextTCount = Object.values(tCount).reduce((sum, count) => sum + count, 0) + 1;
       tCount[p] = (tCount[p] || 0) + 1;
       label = `T${String(nextTCount).padStart(2,'0')}`;  
       type = 'tuer'; 
+    }
+    else if (mode === 'haustechnik') { 
+      const nextHTCount = Object.values(htCount).reduce((sum, count) => sum + count, 0) + 1;
+      htCount[p] = (htCount[p] || 0) + 1;
+      label = `HT${String(nextHTCount).padStart(2,'0')}`; 
+      type = 'haustechnik'; 
+    }
+    else { 
+      const nextDCount = Object.values(dCount).reduce((sum, count) => sum + count, 0) + 1;
+      dCount[p] = (dCount[p] || 0) + 1;
+      label = `D${String(nextDCount).padStart(2,'0')}`;  
+      type = 'diverses'; 
     }
     getPageAnnos().push({ type, x: pos.x, y: pos.y, label, page: p });
     drawAnnotations(); updateLegend();
@@ -697,7 +717,7 @@ function updateLegend() {
   Object.values(annotations).forEach(arr => arr.forEach(a => all.push(a)));
   if (!all.length) { list.innerHTML = '<div class="empty-hint">Noch keine Annotationen</div>'; return; }
   all.sort((a,b) => a.page - b.page || a.label.localeCompare(b.label));
-  const dotColor = { fenster:'#2563EB', heizung:'#DC2626', tuer:'#059669' };
+  const dotColor = { fenster:'#2563EB', heizung:'#DC2626', tuer:'#059669', haustechnik:'#EA580C', diverses:'#7C3AED' };
   list.innerHTML = all.map((a, index) => {
     return `<div class="legend-item" style="cursor:pointer;" onclick="goToAnnotation(${a.page}, '${a.label}', '${a.type}')">
       <div class="legend-dot" style="background:${dotColor[a.type]}"></div>
@@ -742,7 +762,7 @@ function renumberAnnotations() {
   });
   
   // Sort by type and then by page to maintain consistent ordering
-  const typeOrder = { fenster: 1, heizung: 2, tuer: 3 };
+  const typeOrder = { fenster: 1, heizung: 2, tuer: 3, haustechnik: 4, diverses: 5 };
   allAnnotations.sort((a, b) => {
     if (a.type !== b.type) {
       return typeOrder[a.type] - typeOrder[b.type];
@@ -754,6 +774,8 @@ function renumberAnnotations() {
   const newFCount = {};
   const newHCount = {};
   const newTCount = {};
+  const newHTCount = {};
+  const newDCount = {};
   
   // Renumber annotations
   allAnnotations.forEach(anno => {
@@ -772,6 +794,14 @@ function renumberAnnotations() {
       if (!newTCount[page]) newTCount[page] = 0;
       newTCount[page]++;
       newLabel = `T${String(Object.values(newTCount).reduce((sum, count) => sum + count, 0)).padStart(2,'0')}`;
+    } else if (anno.type === 'haustechnik') {
+      if (!newHTCount[page]) newHTCount[page] = 0;
+      newHTCount[page]++;
+      newLabel = `HT${String(Object.values(newHTCount).reduce((sum, count) => sum + count, 0)).padStart(2,'0')}`;
+    } else if (anno.type === 'diverses') {
+      if (!newDCount[page]) newDCount[page] = 0;
+      newDCount[page]++;
+      newLabel = `D${String(Object.values(newDCount).reduce((sum, count) => sum + count, 0)).padStart(2,'0')}`;
     }
     
     // Update the annotation label
@@ -796,6 +826,8 @@ function renumberAnnotations() {
   fCount = newFCount;
   hCount = newHCount;
   tCount = newTCount;
+  htCount = newHTCount;
+  dCount = newDCount;
   
   // Refresh display
   drawAnnotations();
@@ -806,7 +838,7 @@ function renumberAnnotations() {
 // --- Mode ---
 function setMode(m) {
   mode = m;
-  ['fenster','heizung','tuer','move','select'].forEach(id => {
+  ['fenster','heizung','tuer','haustechnik','diverses','move','select'].forEach(id => {
     const btn = document.getElementById('btn-' + id);
     btn.className = 'btn';
     if (id === m) {
@@ -820,7 +852,7 @@ function setMode(m) {
   modeDot.className = 'mode-dot ' + cfg.dot;
   hitLayer.style.cursor = cfg.cursor;
 }
-['fenster','heizung','tuer','move','select'].forEach(id =>
+['fenster','heizung','tuer','haustechnik','diverses','move','select'].forEach(id =>
   document.getElementById('btn-' + id).addEventListener('click', () => setMode(id))
 );
 
@@ -917,6 +949,8 @@ document.getElementById('btn-undo').addEventListener('click', () => {
     if (last.type === 'fenster' && fCount[currentPage] > 0) fCount[currentPage]--;
     if (last.type === 'heizung' && hCount[currentPage] > 0) hCount[currentPage]--;
     if (last.type === 'tuer'    && tCount[currentPage] > 0) tCount[currentPage]--;
+    if (last.type === 'haustechnik' && htCount[currentPage] > 0) htCount[currentPage]--;
+    if (last.type === 'diverses' && dCount[currentPage] > 0) dCount[currentPage]--;
     
     // Auto-renumber to remove gaps
     renumberAnnotations();
