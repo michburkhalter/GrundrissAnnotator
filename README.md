@@ -12,7 +12,7 @@
 - **Mehrere PDFs laden**: Gleichzeitiges Laden mehrerer PDF-Dateien
 - **Alphabetische Sortierung**: PDFs werden automatisch alphabetisch zusammengefügt
 - **Seitenübergreifende Navigation**: Nahtloses Navigieren durch alle Seiten
-- **Seitenbenennung**: Jede Seite kann individuell benannt werden
+- **Stockwerk-Benennung**: Jede Seite kann als Stockwerk benannt werden
 
 ### 🏷️ Annotationstypen
 - **🪟 Fenster (F01, F02, ...)**: Blaue Markierungen für Fenster
@@ -26,11 +26,12 @@
 - **Projekt laden**: Volle Wiederherstellung von gespeicherten Projekten
 - **Automatische Nummerierung**: Eindeutige IDs über alle Seiten hinweg
 - **Datei-Assoziation**: Doppelklick auf .grundrissannotator Dateien öffnet die App
+- **Raum-Verwaltung**: Annotationen können Räumen zugeordnet werden
 
 ### 📊 Export-Optionen
 - **📊 Excel exportieren**: Annotationen als Excel-Datei exportieren
   - Separate Arbeitsblätter pro Annotationstyp
-  - Enthält ID, Seite, Seitenname und Koordinaten
+  - Enthält ID, Stockwerk und Raum
 - **📤 PDF exportieren**: Annotiertes PDF mit allen Markierungen exportieren
 
 ### 📱 PWA-Funktionalität
@@ -60,11 +61,21 @@
 2. Klicken Sie auf die gewünschte Position im PDF
 3. Annotation wird automatisch nummeriert und hinzugefügt
 
-### Seiten benennen
+### Stockwerk benennen
 1. Navigieren Sie zu der gewünschten Seite
-2. Geben Sie einen Namen in das "Seitenname" Eingabefeld ein
-3. Der Seitenname wird automatisch gespeichert
-4. Seitenamen werden in Excel-Exporten und Projektdateien berücksichtigt
+2. Geben Sie einen Namen in das "Stockwerk" Eingabefeld ein (z.B. "EG", "1. OG")
+3. Der Stockwerk-Name wird automatisch gespeichert
+4. Stockwerk-Namen werden in Excel-Exporten als "Stockwerk" angezeigt
+
+### Räume verwalten
+1. Klicken Sie auf "+ Gruppe" um einen neuen Raum zu erstellen (z.B. "Wohnzimmer", "Küche")
+2. Wählen Sie einen Raum aus dem Dropdown-Menü
+3. Neue Annotationen werden automatisch dem gewählten Raum zugeordnet
+4. Um existierende Annotationen einem Raum zuzuweisen:
+   - Wählen Sie den "✕ Löschen" Modus
+   - Klicken Sie auf eine Annotation
+   - Wählen Sie den gewünschten Raum im Auswahl-Panel
+5. Raum-Informationen werden in Excel-Exporten als "Raum" angezeigt
 
 ### Annotationen bearbeiten
 - **✥ Verschieben**: Annotationen verschieben
@@ -79,7 +90,7 @@
 ### Export
 - **📊 Excel exportieren**: Annotationen als Excel-Datei exportieren
   - Separate Arbeitsblätter für jeden Annotationstyp
-  - Enthält ID, Seite, Seitenname, X- und Y-Koordinaten
+  - Enthält ID, Stockwerk und Raum
 - **📤 PDF exportieren**: Annotiertes PDF mit allen Markierungen exportieren
 - **💾 Projekt speichern**: Komplettes Projekt als .grundrissannotator Datei speichern
 - **📂 Projekt laden**: Gespeichertes Projekt wiederherstellen
@@ -113,7 +124,7 @@
 ### Excel-Export (.xlsx)
 - **Format**: Excel-Datei mit mehreren Arbeitsblättern
 - **Arbeitsblätter**: Fenster, Heizkörper, Tür, Haustechnik, Diverses
-- **Spalten**: ID, Seite, Seitenname, X-Koordinate, Y-Koordinate
+- **Spalten**: ID, Stockwerk, Raum
 - **Dateiname**: `{original}_annotationen.xlsx`
 
 ### Exportiertes PDF

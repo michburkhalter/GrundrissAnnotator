@@ -2,6 +2,37 @@
   <!-- Petrol colored background -->
   <rect width="512" height="512" fill="#008B8B"/>
   
-  <!-- F1 text in white centered -->
-  <text x="256" y="280" text-anchor="middle" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="180" font-weight="bold">F1</text>
+  <!-- Stylized floor plan outline -->
+  <rect x="80" y="80" width="352" height="352" fill="none" stroke="#FFFFFF" stroke-width="12" rx="8"/>
+  
+  <!-- Inner room divider -->
+  <line x1="256" y1="80" x2="256" y2="432" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round"/>
+  
+  <!-- Window (left room) -->
+  <rect x="100" y="100" width="80" height="12" fill="#FFFFFF" rx="4"/>
+  <rect x="100" y="112" width="12" height="60" fill="#FFFFFF" rx="4"/>
+  <rect x="168" y="112" width="12" height="60" fill="#FFFFFF" rx="4"/>
+  <rect x="100" y="168" width="80" height="12" fill="#FFFFFF" rx="4"/>
+  
+  <!-- Door (right room) -->
+  <rect x="300" y="100" width="12" height="80" fill="#FFFFFF" rx="4"/>
+  <path d="M312 140 Q344 140 344 180" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="328" cy="155" r="8" fill="#FFFFFF"/>
+  
+  <!-- Annotation markers with app colors -->
+  <!-- Fenster (blue) -->
+  <circle cx="140" cy="240" r="24" fill="#EFF6FF" stroke="#2563EB" stroke-width="6"/>
+  <text x="140" y="248" text-anchor="middle" fill="#1D4ED8" font-family="Arial, sans-serif" font-size="20" font-weight="bold">F</text>
+  
+  <!-- Heizkörper (red) -->
+  <circle cx="140" cy="320" r="24" fill="#FEF2F2" stroke="#DC2626" stroke-width="6"/>
+  <text x="140" y="328" text-anchor="middle" fill="#B91C1C" font-family="Arial, sans-serif" font-size="16" font-weight="bold">HK</text>
+  
+  <!-- Tür (green) -->
+  <circle cx="372" cy="240" r="24" fill="#ECFDF5" stroke="#059669" stroke-width="6"/>
+  <text x="372" y="248" text-anchor="middle" fill="#047857" font-family="Arial, sans-serif" font-size="20" font-weight="bold">T</text>
+  
+  <!-- Haustechnik (orange) -->
+  <circle cx="372" cy="320" r="24" fill="#FFF7ED" stroke="#EA580C" stroke-width="6"/>
+  <text x="372" y="328" text-anchor="middle" fill="#C2410C" font-family="Arial, sans-serif" font-size="14" font-weight="bold">HT</text>
 </svg>

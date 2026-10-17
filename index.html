@@ -384,7 +384,7 @@ Licensed under the MIT License
   <button class="btn" id="btn-haustechnik">⚙ Haustechnik</button>
   <button class="btn" id="btn-diverses">◆ Diverses</button>
   <button class="btn" id="btn-move">✥ Verschieben</button>
-  <button class="btn" id="btn-select">✕ Löschen</button>
+  <button class="btn" id="btn-select">✕ Selektieren</button>
   <div class="t-sep"></div>
   <button class="btn btn-icon" id="zoom-out">−</button>
   <span id="zoom-label">100%</span>
@@ -393,7 +393,12 @@ Licensed under the MIT License
   <button class="btn btn-icon" id="prev-page">◀</button>
   <span id="page-label">–/–</span>
   <button class="btn btn-icon" id="next-page">▶</button>
-  <input type="text" id="page-name-input" placeholder="Seitenname" style="width: 150px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; font-family: 'DM Mono', monospace;">
+  <input type="text" id="page-name-input" placeholder="Stockwerk" style="width: 150px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; font-family: 'DM Mono', monospace;">
+  <div class="t-sep"></div>
+  <select id="group-select" style="padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; font-family: 'DM Mono', monospace; background: var(--bg);">
+    <option value="">Kein Raum</option>
+  </select>
+  <button class="btn" id="btn-add-group" style="padding: 4px 8px; font-size: 12px;">+ Raum</button>
   <div class="t-sep"></div>
   <button class="btn danger" id="btn-undo">↩ Rückgängig</button>
   <button class="btn" id="btn-renumber">🔢 Neu nummerieren</button>
@@ -427,6 +432,26 @@ Licensed under the MIT License
       <div class="mode-badge" id="mode-badge">
         <div class="mode-dot f" id="mode-dot"></div>
         <span id="mode-text">Fenster setzen</span>
+      </div>
+    </div>
+    <div class="panel" id="selection-panel" style="display:none;">
+      <div class="panel-title">Auswahl</div>
+      <div style="padding:8px;">
+        <div style="margin-bottom:8px;">
+          <label style="font-size:11px;color:#666;">ID:</label>
+          <div id="selected-id" style="font-weight:bold;"></div>
+        </div>
+        <div style="margin-bottom:8px;">
+          <label style="font-size:11px;color:#666;">Typ:</label>
+          <div id="selected-type"></div>
+        </div>
+        <div style="margin-bottom:8px;">
+          <label style="font-size:11px;color:#666;">Raum ändern:</label>
+          <select id="selected-group-select" style="width:100%;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:'DM Mono',monospace;background:var(--bg);">
+            <option value="">Kein Raum</option>
+          </select>
+        </div>
+        <button id="btn-delete-selected" class="btn danger" style="width:100%;padding:6px;font-size:12px;">Löschen</button>
       </div>
     </div>
     <div class="panel" style="flex:1;">
@@ -472,6 +497,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 let pdfDocs = [], currentPage = 1, zoom = 1.0;
 let annotations = {}, fCount = {}, hCount = {}, tCount = {}, htCount = {}, dCount = {};
 let pageNames = {}; // Store page names
+let groups = {}; // Store group names (rooms)
 let mode = 'fenster';
 let dragging = null;
 let loadedFileNames = [];
@@ -493,6 +519,12 @@ const sbMsg      = document.getElementById('status-msg');
 const modeDot    = document.getElementById('mode-dot');
 const modeText   = document.getElementById('mode-text');
 const pageNameInput = document.getElementById('page-name-input');
+const groupSelect = document.getElementById('group-select');
+const selectionPanel = document.getElementById('selection-panel');
+const selectedGroupSelect = document.getElementById('selected-group-select');
+const selectedId = document.getElementById('selected-id');
+const selectedType = document.getElementById('selected-type');
+let selectedAnnotation = null;
 
 const RADIUS = 14;
 const COLORS = {
@@ -630,6 +662,9 @@ async function renderPage() {
   // Update page name input
   pageNameInput.value = pageNames[currentPage] || '';
   
+  // Hide selection panel when changing pages
+  hideSelectionPanel();
+  
   hitLayer.style.width  = vp.width + 'px';
   hitLayer.style.height = vp.height + 'px';
   drawAnnotations();
@@ -656,17 +691,7 @@ function startInteraction(e) {
     return;
   }
   if (mode === 'select' && idx >= 0) {
-    if (confirm(`Annotation "${getPageAnnos()[idx].label}" löschen?`)) {
-      const a = getPageAnnos().splice(idx, 1)[0];
-      if (a.type === 'fenster' && fCount[currentPage] > 0) fCount[currentPage]--;
-      if (a.type === 'heizung' && hCount[currentPage] > 0) hCount[currentPage]--;
-      if (a.type === 'tuer'    && tCount[currentPage] > 0) tCount[currentPage]--;
-      if (a.type === 'haustechnik' && htCount[currentPage] > 0) htCount[currentPage]--;
-      if (a.type === 'diverses' && dCount[currentPage] > 0) dCount[currentPage]--;
-      
-      // Auto-renumber to remove gaps
-      renumberAnnotations();
-    }
+    showSelectionPanel(getPageAnnos()[idx]);
     return;
   }
   if ((mode === 'fenster' || mode === 'heizung' || mode === 'tuer' || mode === 'haustechnik' || mode === 'diverses') && idx < 0) {
@@ -702,7 +727,7 @@ function startInteraction(e) {
       label = `D${String(nextDCount).padStart(2,'0')}`;  
       type = 'diverses'; 
     }
-    getPageAnnos().push({ type, x: pos.x, y: pos.y, label, page: p });
+    getPageAnnos().push({ type, x: pos.x, y: pos.y, label, page: p, group: groupSelect.value || null });
     drawAnnotations(); updateLegend();
   }
 }
@@ -740,10 +765,14 @@ function updateLegend() {
   all.sort((a,b) => a.page - b.page || a.label.localeCompare(b.label));
   const dotColor = { fenster:'#2563EB', heizung:'#DC2626', tuer:'#059669', haustechnik:'#EA580C', diverses:'#7C3AED' };
   list.innerHTML = all.map((a, index) => {
-    return `<div class="legend-item" style="cursor:pointer;" onclick="goToAnnotation(${a.page}, '${a.label}', '${a.type}')">
+    const groupName = a.group ? (groups[a.group] || '') : '';
+    const groupDisplay = groupName ? `<span class="legend-group" style="font-size:10px;color:#666;margin-left:4px;">(${groupName})</span>` : '';
+    const escapedLabel = a.label.replace(/'/g, "\\'");
+    return `<div class="legend-item" style="cursor:pointer;" onclick="goToAnnotation(${a.page}, '${escapedLabel}', '${a.type}')">
       <div class="legend-dot" style="background:${dotColor[a.type]}"></div>
       <span class="legend-label">${a.label}</span>
       <span class="legend-page">S.${a.page}</span>
+      ${groupDisplay}
     </div>`;
   }).join('');
 }
@@ -838,7 +867,8 @@ function renumberAnnotations() {
       x: anno.x,
       y: anno.y,
       label: anno.label,
-      page: anno.page
+      page: anno.page,
+      group: anno.group || null
     });
   });
   
@@ -859,19 +889,11 @@ function renumberAnnotations() {
 // --- Mode ---
 function setMode(m) {
   mode = m;
-  ['fenster','heizung','tuer','haustechnik','diverses','move','select'].forEach(id => {
-    const btn = document.getElementById('btn-' + id);
-    btn.className = 'btn';
-    if (id === m) {
-      if (id === 'heizung') btn.classList.add('active-h');
-      else if (id === 'tuer') btn.classList.add('active-t');
-      else btn.classList.add('active');
-    }
-  });
   const cfg = modeConfig[m];
   modeText.textContent = cfg.text;
   modeDot.className = 'mode-dot ' + cfg.dot;
   hitLayer.style.cursor = cfg.cursor;
+  hideSelectionPanel();
 }
 ['fenster','heizung','tuer','haustechnik','diverses','move','select'].forEach(id =>
   document.getElementById('btn-' + id).addEventListener('click', () => setMode(id))
@@ -884,6 +906,104 @@ pageNameInput.addEventListener('input', (e) => {
 
 pageNameInput.addEventListener('blur', () => {
   // Optional: Save to project or perform other actions when input loses focus
+});
+
+// --- Selection Management ---
+function updateSelectedGroupSelect() {
+  const currentValue = selectedGroupSelect.value;
+  selectedGroupSelect.innerHTML = '<option value="">Kein Raum</option>';
+  Object.entries(groups).forEach(([id, name]) => {
+    const option = document.createElement('option');
+    option.value = id;
+    option.textContent = name;
+    selectedGroupSelect.appendChild(option);
+  });
+  selectedGroupSelect.value = currentValue;
+}
+
+function showSelectionPanel(annotation) {
+  selectedAnnotation = annotation;
+  selectionPanel.style.display = 'block';
+  selectedId.textContent = annotation.label;
+  
+  const typeNames = {
+    fenster: 'Fenster',
+    heizung: 'Heizkörper',
+    tuer: 'Tür',
+    haustechnik: 'Haustechnik',
+    diverses: 'Diverses'
+  };
+  selectedType.textContent = typeNames[annotation.type] || annotation.type;
+  
+  updateSelectedGroupSelect();
+  selectedGroupSelect.value = annotation.group || '';
+}
+
+function hideSelectionPanel() {
+  selectionPanel.style.display = 'none';
+  selectedAnnotation = null;
+}
+
+// --- Group Management ---
+function updateGroupSelect() {
+  const currentValue = groupSelect.value;
+  groupSelect.innerHTML = '<option value="">Kein Raum</option>';
+  Object.entries(groups).forEach(([id, name]) => {
+    const option = document.createElement('option');
+    option.value = id;
+    option.textContent = name;
+    groupSelect.appendChild(option);
+  });
+  groupSelect.value = currentValue;
+}
+
+document.getElementById('btn-add-group').addEventListener('click', () => {
+  const groupName = prompt('Raumname eingeben (z.B. "Wohnzimmer", "Küche"):');
+  if (groupName && groupName.trim()) {
+    const groupId = 'group_' + Date.now();
+    groups[groupId] = groupName.trim();
+    updateGroupSelect();
+    updateSelectedGroupSelect();
+    groupSelect.value = groupId;
+    setStatus(`Raum "${groupName.trim()}" erstellt`, true);
+  }
+});
+
+groupSelect.addEventListener('change', () => {
+  // Current group is stored in the select value
+  // New annotations will be assigned to this group
+});
+
+// Initialize group select
+updateGroupSelect();
+
+// --- Selection Event Listeners ---
+selectedGroupSelect.addEventListener('change', () => {
+  if (selectedAnnotation) {
+    selectedAnnotation.group = selectedGroupSelect.value || null;
+    updateLegend();
+    setStatus('Raum geändert', true);
+  }
+});
+
+document.getElementById('btn-delete-selected').addEventListener('click', () => {
+  if (selectedAnnotation) {
+    const annos = getPageAnnos();
+    const idx = annos.indexOf(selectedAnnotation);
+    if (idx !== -1) {
+      annos.splice(idx, 1);
+      if (selectedAnnotation.type === 'fenster' && fCount[currentPage] > 0) fCount[currentPage]--;
+      if (selectedAnnotation.type === 'heizung' && hCount[currentPage] > 0) hCount[currentPage]--;
+      if (selectedAnnotation.type === 'tuer'    && tCount[currentPage] > 0) tCount[currentPage]--;
+      if (selectedAnnotation.type === 'haustechnik' && htCount[currentPage] > 0) htCount[currentPage]--;
+      if (selectedAnnotation.type === 'diverses' && dCount[currentPage] > 0) dCount[currentPage]--;
+      
+      renumberAnnotations();
+      hideSelectionPanel();
+      drawAnnotations();
+      updateLegend();
+    }
+  }
 });
 
 // --- Load PDF ---
@@ -1017,7 +1137,8 @@ document.getElementById('btn-save-project').addEventListener('click', () => {
     tCount: tCount,
     htCount: htCount,
     dCount: dCount,
-    pageNames: pageNames
+    pageNames: pageNames,
+    groups: groups
   };
   
   const dataStr = JSON.stringify(projectData, null, 2);
@@ -1060,6 +1181,9 @@ document.getElementById('project-input').addEventListener('change', async (e) =>
     htCount = projectData.htCount || {};
     dCount = projectData.dCount || {};
     pageNames = projectData.pageNames || {};
+    groups = projectData.groups || {};
+    updateGroupSelect();
+    updateSelectedGroupSelect();
     
     // Load PDFs from stored data if available (v2.0+)
     if (projectData.version >= '2.0' && projectData.pdfData) {
@@ -1224,10 +1348,8 @@ document.getElementById('btn-excel-export').addEventListener('click', () => {
       if (annotationsByType[anno.type]) {
         annotationsByType[anno.type].push({
           'ID': anno.label,
-          'Seite': page,
-          'Seitenname': pageNames[page] || '',
-          'X-Koordinate': Math.round(anno.x),
-          'Y-Koordinate': Math.round(anno.y)
+          'Stockwerk': pageNames[page] || '',
+          'Raum': anno.group ? (groups[anno.group] || '') : ''
         });
       }
     });
