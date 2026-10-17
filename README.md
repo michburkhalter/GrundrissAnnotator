@@ -1,8 +1,8 @@
 # Grundriss Annotator
 
-## 🌐 [**Live Demo starten**](https://michburkhalter.github.io/GrundrissAnnotator/grundriss-annotator) ⚡
+## 🌐 [**Live Demo starten**](https://michburkhalter.github.io/GrundrissAnnotator/) ⚡
 
-*Ein moderner, browser-basierter Annotator für Grundrisse und architektonische Pläne. Mit diesem Tool können Fenster, Heizkörper und Türen in PDF-Dokumenten markiert und nummeriert werden.*
+*Ein moderner, browser-basierter Annotator für Grundrisse und architektonische Pläne. Mit diesem Tool können Fenster, Heizkörper, Türen, Haustechnik und diverse Elemente in PDF-Dokumenten markiert und nummeriert werden.*
 
 ---
 
@@ -12,16 +12,31 @@
 - **Mehrere PDFs laden**: Gleichzeitiges Laden mehrerer PDF-Dateien
 - **Alphabetische Sortierung**: PDFs werden automatisch alphabetisch zusammengefügt
 - **Seitenübergreifende Navigation**: Nahtloses Navigieren durch alle Seiten
+- **Seitenbenennung**: Jede Seite kann individuell benannt werden
 
 ### 🏷️ Annotationstypen
 - **🪟 Fenster (F01, F02, ...)**: Blaue Markierungen für Fenster
 - **🔥 Heizkörper (HK01, HK02, ...)**: Rote Markierungen für Heizkörper
 - **🚪 Türen (T01, T02, ...)**: Grüne Markierungen für Türen
+- **⚙ Haustechnik (HT01, HT02, ...)**: Orange Markierungen für Haustechnik
+- **◆ Diverses (D01, D02, ...)**: Lila Markierungen für diverse Elemente
 
 ### 💾 Projektverwaltung
-- **Projekt speichern**: Komplettes Projekt inklusive PDF-Dateien als JSON speichern
+- **Projekt speichern**: Komplettes Projekt inklusive PDF-Dateien speichern
 - **Projekt laden**: Volle Wiederherstellung von gespeicherten Projekten
 - **Automatische Nummerierung**: Eindeutige IDs über alle Seiten hinweg
+- **Datei-Assoziation**: Doppelklick auf .grundrissannotator Dateien öffnet die App
+
+### 📊 Export-Optionen
+- **📊 Excel exportieren**: Annotationen als Excel-Datei exportieren
+  - Separate Arbeitsblätter pro Annotationstyp
+  - Enthält ID, Seite, Seitenname und Koordinaten
+- **📤 PDF exportieren**: Annotiertes PDF mit allen Markierungen exportieren
+
+### 📱 PWA-Funktionalität
+- **Offline-Nutzung**: App funktioniert auch ohne Internetverbindung
+- **Installation**: Als Desktop-App installierbar
+- **Automatische Updates**: Immer die neueste Version
 
 ### 🎨 Benutzeroberfläche
 - **Klickbare Legende**: Annotationen in der Liste direkt ansteuern
@@ -38,10 +53,18 @@
 ### Annotationen hinzufügen
 1. Wählen Sie einen Annotationstyp in der Toolbar:
    - **◻ Fenster**: Fenster markieren
-   - **▣ Heizkörper**: Heizkörper markieren  
+   - **▣ Heizkörper**: Heizkörper markieren
    - **⬡ Tür**: Türen markieren
+   - **⚙ Haustechnik**: Haustechnik markieren
+   - **◆ Diverses**: Diverse Elemente markieren
 2. Klicken Sie auf die gewünschte Position im PDF
 3. Annotation wird automatisch nummeriert und hinzugefügt
+
+### Seiten benennen
+1. Navigieren Sie zu der gewünschten Seite
+2. Geben Sie einen Namen in das "Seitenname" Eingabefeld ein
+3. Der Seitenname wird automatisch gespeichert
+4. Seitenamen werden in Excel-Exporten und Projektdateien berücksichtigt
 
 ### Annotationen bearbeiten
 - **✥ Verschieben**: Annotationen verschieben
@@ -54,8 +77,11 @@
 - **📍 Legende**: Klicken Sie auf eine Annotation in der Liste, um zur entsprechenden Seite zu springen
 
 ### Export
+- **📊 Excel exportieren**: Annotationen als Excel-Datei exportieren
+  - Separate Arbeitsblätter für jeden Annotationstyp
+  - Enthält ID, Seite, Seitenname, X- und Y-Koordinaten
 - **📤 PDF exportieren**: Annotiertes PDF mit allen Markierungen exportieren
-- **💾 Projekt speichern**: Komplettes Projekt als JSON speichern
+- **💾 Projekt speichern**: Komplettes Projekt als .grundrissannotator Datei speichern
 - **📂 Projekt laden**: Gespeichertes Projekt wiederherstellen
 
 ### Neu-Nummerierung
@@ -64,7 +90,7 @@
 
 ## 📋 Dateiformate
 
-### Projektdatei (.json)
+### Projektdatei (.grundrissannotator)
 ```json
 {
   "version": "2.0",
@@ -77,9 +103,18 @@
   "annotations": {...},
   "fCount": {...},
   "hCount": {...},
-  "tCount": {...}
+  "tCount": {...},
+  "htCount": {...},
+  "dCount": {...},
+  "pageNames": {...}
 }
 ```
+
+### Excel-Export (.xlsx)
+- **Format**: Excel-Datei mit mehreren Arbeitsblättern
+- **Arbeitsblätter**: Fenster, Heizkörper, Tür, Haustechnik, Diverses
+- **Spalten**: ID, Seite, Seitenname, X-Koordinate, Y-Koordinate
+- **Dateiname**: `{original}_annotationen.xlsx`
 
 ### Exportiertes PDF
 - **Format**: Standard PDF mit eingebetteten Annotationen
@@ -108,6 +143,7 @@
 ### Abhängigkeiten
 - **PDF.js**: PDF-Rendering und -Manipulation
 - **jsPDF**: PDF-Erzeugung für den Export
+- **SheetJS (XLSX)**: Excel-Export-Funktionalität
 - **Vanilla JavaScript**: Keine zusätzlichen Frameworks benötigt
 
 ### Leistung
@@ -146,14 +182,22 @@
 
 ## 🔄 Versionierung
 
-### v2.0 (Aktuell)
+### v1.0.2 (Aktuell)
+- **🏷️ Neue Annotationstypen**: Haustechnik und Diverses hinzugefügt
+- **📊 Excel-Export**: Export von Annotationen als Excel-Datei
+- **📝 Seitenbenennung**: Jede Seite kann individuell benannt werden
+- **📱 PWA-Verbesserungen**: Network-First Caching und Datei-Assoziation
+- **📁 Dateiendung**: Projektdateien verwenden .grundrissannotator Endung
+
+### v1.0.1
+- **PWA-Funktionalität**: Progressive Web App mit Offline-Support
+- **Service Worker**: Caching für bessere Performance
+- **Manifest**: App-Installation möglich
+
+### v1.0.0
 - **PDF-Integration**: PDFs direkt in Projektdateien gespeichert
 - **Mehrfach-PDF**: Unterstützung für mehrere PDFs gleichzeitig
 - **Neu-Nummerierung**: Automatische Lückenentfernung in Annotationen
-
-### v1.0 (Legacy)
-- **Basisfunktionen**: Grundlegende Annotationen
-- **Manueller PDF-Reload**: PDFs mussten neu geladen werden
 
 ## 🤝 Unterstützung
 
