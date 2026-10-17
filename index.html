@@ -393,6 +393,7 @@ Licensed under the MIT License
   <button class="btn btn-icon" id="prev-page">◀</button>
   <span id="page-label">–/–</span>
   <button class="btn btn-icon" id="next-page">▶</button>
+  <input type="text" id="page-name-input" placeholder="Seitenname" style="width: 150px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; font-family: 'DM Mono', monospace;">
   <div class="t-sep"></div>
   <button class="btn danger" id="btn-undo">↩ Rückgängig</button>
   <button class="btn" id="btn-renumber">🔢 Neu nummerieren</button>
@@ -402,6 +403,7 @@ Licensed under the MIT License
     📂 Projekt laden
     <input type="file" accept=".grundrissannotator" id="project-input" style="position:absolute;opacity:0;width:1px;height:1px;">
   </label>
+  <button class="btn" id="btn-excel-export">📊 Excel exportieren</button>
   <button class="btn primary" id="btn-export">⬇ PDF exportieren</button>
 </div>
 
@@ -444,6 +446,7 @@ Licensed under the MIT License
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // Version - Increment on each build
 const APP_VERSION = '1.0.2';
@@ -468,6 +471,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 
 let pdfDocs = [], currentPage = 1, zoom = 1.0;
 let annotations = {}, fCount = {}, hCount = {}, tCount = {}, htCount = {}, dCount = {};
+let pageNames = {}; // Store page names
 let mode = 'fenster';
 let dragging = null;
 let loadedFileNames = [];
@@ -488,6 +492,7 @@ const sbFile     = document.getElementById('status-file');
 const sbMsg      = document.getElementById('status-msg');
 const modeDot    = document.getElementById('mode-dot');
 const modeText   = document.getElementById('mode-text');
+const pageNameInput = document.getElementById('page-name-input');
 
 const RADIUS = 14;
 const COLORS = {
@@ -621,6 +626,10 @@ async function renderPage() {
   pdfCanvas.style.height = vp.height + 'px';
   await page.render({ canvasContext: pdfCtx, viewport: vp }).promise;
   pageLabel.textContent = `${currentPage}/${totalPages}`;
+  
+  // Update page name input
+  pageNameInput.value = pageNames[currentPage] || '';
+  
   hitLayer.style.width  = vp.width + 'px';
   hitLayer.style.height = vp.height + 'px';
   drawAnnotations();
@@ -868,6 +877,15 @@ function setMode(m) {
   document.getElementById('btn-' + id).addEventListener('click', () => setMode(id))
 );
 
+// --- Page Name Input ---
+pageNameInput.addEventListener('input', (e) => {
+  pageNames[currentPage] = e.target.value;
+});
+
+pageNameInput.addEventListener('blur', () => {
+  // Optional: Save to project or perform other actions when input loses focus
+});
+
 // --- Load PDF ---
 document.getElementById('file-input').addEventListener('change', async (e) => {
   const files = Array.from(e.target.files);
@@ -996,7 +1014,10 @@ document.getElementById('btn-save-project').addEventListener('click', () => {
     annotations: annotations,
     fCount: fCount,
     hCount: hCount,
-    tCount: tCount
+    tCount: tCount,
+    htCount: htCount,
+    dCount: dCount,
+    pageNames: pageNames
   };
   
   const dataStr = JSON.stringify(projectData, null, 2);
@@ -1036,6 +1057,9 @@ document.getElementById('project-input').addEventListener('change', async (e) =>
     fCount = projectData.fCount || {};
     hCount = projectData.hCount || {};
     tCount = projectData.tCount || {};
+    htCount = projectData.htCount || {};
+    dCount = projectData.dCount || {};
+    pageNames = projectData.pageNames || {};
     
     // Load PDFs from stored data if available (v2.0+)
     if (projectData.version >= '2.0' && projectData.pdfData) {
@@ -1162,6 +1186,76 @@ document.getElementById('btn-export').addEventListener('click', async () => {
     console.error(err);
     setStatus('Export fehlgeschlagen: ' + err.message, false);
   }
+});
+
+// --- Excel Export ---
+document.getElementById('btn-excel-export').addEventListener('click', () => {
+  if (Object.keys(annotations).length === 0 || Object.values(annotations).every(arr => arr.length === 0)) {
+    alert('Keine Annotationen zum Exportieren gefunden.');
+    return;
+  }
+  
+  setStatus('Exportiere Excel…', false);
+  
+  // Define annotation types and their German names
+  const typeNames = {
+    fenster: 'Fenster',
+    heizung: 'Heizkörper',
+    tuer: 'Tür',
+    haustechnik: 'Haustechnik',
+    diverses: 'Diverses'
+  };
+  
+  // Create workbook
+  const workbook = XLSX.utils.book_new();
+  
+  // Collect all annotations by type
+  const annotationsByType = {
+    fenster: [],
+    heizung: [],
+    tuer: [],
+    haustechnik: [],
+    diverses: []
+  };
+  
+  // Group annotations by type
+  Object.entries(annotations).forEach(([page, pageAnnos]) => {
+    pageAnnos.forEach(anno => {
+      if (annotationsByType[anno.type]) {
+        annotationsByType[anno.type].push({
+          'ID': anno.label,
+          'Seite': page,
+          'Seitenname': pageNames[page] || '',
+          'X-Koordinate': Math.round(anno.x),
+          'Y-Koordinate': Math.round(anno.y)
+        });
+      }
+    });
+  });
+  
+  // Create worksheet for each type
+  Object.entries(annotationsByType).forEach(([type, annos]) => {
+    if (annos.length > 0) {
+      // Sort by ID
+      annos.sort((a, b) => a.ID.localeCompare(b.ID));
+      
+      // Create worksheet
+      const worksheet = XLSX.utils.json_to_sheet(annos);
+      
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, typeNames[type]);
+    }
+  });
+  
+  // Generate filename
+  const projectName = loadedFileNames.length === 1 
+    ? loadedFileNames[0] 
+    : 'grundriss_projekt';
+  
+  // Export Excel file
+  XLSX.writeFile(workbook, projectName + '_annotationen.xlsx');
+  
+  setStatus('Excel exportiert', true);
 });
 
 window.addEventListener('resize', () => { if (pdfDocs.length > 0) drawAnnotations(); });
