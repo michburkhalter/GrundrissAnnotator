@@ -483,6 +483,10 @@ Licensed under the MIT License
           <input type="number" id="selected-breite" style="width:100%;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:'DM Mono',monospace;background:var(--bg);" step="0.1">
         </div>
         <div style="margin-bottom:8px;">
+          <label style="font-size:11px;color:#666;">Typenschild:</label>
+          <textarea id="selected-typenschild" style="width:100%;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:'DM Mono',monospace;background:var(--bg);resize:vertical;min-height:60px;"></textarea>
+        </div>
+        <div style="margin-bottom:8px;">
           <label style="font-size:11px;color:#666;">Bemerkung:</label>
           <textarea id="selected-bemerkung" style="width:100%;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:'DM Mono',monospace;background:var(--bg);resize:vertical;min-height:60px;" maxlength="500"></textarea>
         </div>
@@ -509,7 +513,7 @@ Licensed under the MIT License
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // Version - Increment on each build
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.5.0';
 
 // Set version display
 document.addEventListener('DOMContentLoaded', () => {
@@ -564,6 +568,7 @@ const selectedType = document.getElementById('selected-type');
 const selectedModell = document.getElementById('selected-modell');
 const selectedHoehe = document.getElementById('selected-hoehe');
 const selectedBreite = document.getElementById('selected-breite');
+const selectedTypenschild = document.getElementById('selected-typenschild');
 const selectedBemerkung = document.getElementById('selected-bemerkung');
 let selectedAnnotation = null;
 
@@ -768,7 +773,7 @@ function startInteraction(e) {
       label = `D${String(nextDCount).padStart(2,'0')}`;  
       type = 'diverses'; 
     }
-    getPageAnnos().push({ type, x: pos.x, y: pos.y, label, page: p, group: groupSelect.value || null, modell: '', hoehe: '', breite: '', bemerkung: '' });
+    getPageAnnos().push({ type, x: pos.x, y: pos.y, label, page: p, group: groupSelect.value || null, modell: '', hoehe: '', breite: '', typenschild: '', bemerkung: '' });
     drawAnnotations(); updateLegend();
   }
 }
@@ -913,6 +918,7 @@ function renumberAnnotations() {
       modell: anno.modell || '',
       hoehe: anno.hoehe || '',
       breite: anno.breite || '',
+      typenschild: anno.typenschild || '',
       bemerkung: anno.bemerkung || ''
     });
   });
@@ -987,6 +993,7 @@ function showSelectionPanel(annotation) {
   selectedModell.value = annotation.modell || '';
   selectedHoehe.value = annotation.hoehe || '';
   selectedBreite.value = annotation.breite || '';
+  selectedTypenschild.value = annotation.typenschild || '';
   selectedBemerkung.value = annotation.bemerkung || '';
 }
 
@@ -1052,6 +1059,12 @@ selectedHoehe.addEventListener('input', () => {
 selectedBreite.addEventListener('input', () => {
   if (selectedAnnotation) {
     selectedAnnotation.breite = selectedBreite.value;
+  }
+});
+
+selectedTypenschild.addEventListener('input', () => {
+  if (selectedAnnotation) {
+    selectedAnnotation.typenschild = selectedTypenschild.value;
   }
 });
 
@@ -1264,6 +1277,7 @@ document.getElementById('project-input').addEventListener('change', async (e) =>
         if (anno.modell === undefined) anno.modell = '';
         if (anno.hoehe === undefined) anno.hoehe = '';
         if (anno.breite === undefined) anno.breite = '';
+        if (anno.typenschild === undefined) anno.typenschild = '';
         if (anno.bemerkung === undefined) anno.bemerkung = '';
       });
     });
@@ -1439,6 +1453,7 @@ document.getElementById('btn-excel-export').addEventListener('click', () => {
           'Modell': anno.modell || '',
           'Höhe (cm)': anno.hoehe || '',
           'Breite (cm)': anno.breite || '',
+          'Typenschild': anno.typenschild || '',
           'Bemerkung': anno.bemerkung || ''
         });
       }
