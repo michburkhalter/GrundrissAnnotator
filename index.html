@@ -241,12 +241,29 @@ Licensed under the MIT License
   /* --- Sidebar --- */
   #sidebar {
     width: 220px;
+    min-width: 180px;
+    max-width: 500px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
     gap: 12px;
     max-height: 100%;
     overflow: hidden;
+  }
+
+  /* --- Resizer --- */
+  #resizer {
+    width: 6px;
+    background: var(--border);
+    cursor: col-resize;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  #resizer:hover {
+    background: var(--border-strong);
+  }
+  #resizer.resizing {
+    background: var(--accent-f);
   }
 
   .panel {
@@ -426,6 +443,8 @@ Licensed under the MIT License
     </div>
   </div>
 
+  <div id="resizer"></div>
+
   <div id="sidebar">
     <div class="panel">
       <div class="panel-title">Modus</div>
@@ -451,6 +470,22 @@ Licensed under the MIT License
             <option value="">Kein Raum</option>
           </select>
         </div>
+        <div style="margin-bottom:8px;">
+          <label style="font-size:11px;color:#666;">Modell:</label>
+          <input type="text" id="selected-modell" style="width:100%;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:'DM Mono',monospace;background:var(--bg);">
+        </div>
+        <div style="margin-bottom:8px;">
+          <label style="font-size:11px;color:#666;">Höhe (cm):</label>
+          <input type="number" id="selected-hoehe" style="width:100%;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:'DM Mono',monospace;background:var(--bg);" step="0.1">
+        </div>
+        <div style="margin-bottom:8px;">
+          <label style="font-size:11px;color:#666;">Breite (cm):</label>
+          <input type="number" id="selected-breite" style="width:100%;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:'DM Mono',monospace;background:var(--bg);" step="0.1">
+        </div>
+        <div style="margin-bottom:8px;">
+          <label style="font-size:11px;color:#666;">Bemerkung:</label>
+          <textarea id="selected-bemerkung" style="width:100%;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:'DM Mono',monospace;background:var(--bg);resize:vertical;min-height:60px;" maxlength="500"></textarea>
+        </div>
         <button id="btn-delete-selected" class="btn danger" style="width:100%;padding:6px;font-size:12px;">Löschen</button>
       </div>
     </div>
@@ -474,7 +509,7 @@ Licensed under the MIT License
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // Version - Increment on each build
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.4.0';
 
 // Set version display
 document.addEventListener('DOMContentLoaded', () => {
@@ -511,6 +546,8 @@ const annoCtx    = annoCanvas.getContext('2d');
 const hitLayer   = document.getElementById('hit-layer');
 const canvasInner = document.getElementById('canvas-inner');
 const dropHint   = document.getElementById('drop-hint');
+const resizer    = document.getElementById('resizer');
+const sidebar    = document.getElementById('sidebar');
 const pageLabel  = document.getElementById('page-label');
 const zoomLabel  = document.getElementById('zoom-label');
 const sbDot      = document.getElementById('sb-dot');
@@ -524,6 +561,10 @@ const selectionPanel = document.getElementById('selection-panel');
 const selectedGroupSelect = document.getElementById('selected-group-select');
 const selectedId = document.getElementById('selected-id');
 const selectedType = document.getElementById('selected-type');
+const selectedModell = document.getElementById('selected-modell');
+const selectedHoehe = document.getElementById('selected-hoehe');
+const selectedBreite = document.getElementById('selected-breite');
+const selectedBemerkung = document.getElementById('selected-bemerkung');
 let selectedAnnotation = null;
 
 const RADIUS = 14;
@@ -542,7 +583,7 @@ const modeConfig = {
   haustechnik: { text:'Haustechnik setzen', dot:'ht', cursor:'crosshair' },
   diverses: { text:'Diverses setzen',   dot:'d', cursor:'crosshair' },
   move:    { text:'Verschieben',         dot:'m', cursor:'grab' },
-  select:  { text:'Löschen',            dot:'d', cursor:'pointer' }
+  select:  { text:'Selektieren',        dot:'d', cursor:'pointer' }
 };
 
 function setStatus(msg, ok) {
@@ -727,7 +768,7 @@ function startInteraction(e) {
       label = `D${String(nextDCount).padStart(2,'0')}`;  
       type = 'diverses'; 
     }
-    getPageAnnos().push({ type, x: pos.x, y: pos.y, label, page: p, group: groupSelect.value || null });
+    getPageAnnos().push({ type, x: pos.x, y: pos.y, label, page: p, group: groupSelect.value || null, modell: '', hoehe: '', breite: '', bemerkung: '' });
     drawAnnotations(); updateLegend();
   }
 }
@@ -868,7 +909,11 @@ function renumberAnnotations() {
       y: anno.y,
       label: anno.label,
       page: anno.page,
-      group: anno.group || null
+      group: anno.group || null,
+      modell: anno.modell || '',
+      hoehe: anno.hoehe || '',
+      breite: anno.breite || '',
+      bemerkung: anno.bemerkung || ''
     });
   });
   
@@ -937,6 +982,12 @@ function showSelectionPanel(annotation) {
   
   updateSelectedGroupSelect();
   selectedGroupSelect.value = annotation.group || '';
+  
+  // Populate new fields
+  selectedModell.value = annotation.modell || '';
+  selectedHoehe.value = annotation.hoehe || '';
+  selectedBreite.value = annotation.breite || '';
+  selectedBemerkung.value = annotation.bemerkung || '';
 }
 
 function hideSelectionPanel() {
@@ -983,6 +1034,30 @@ selectedGroupSelect.addEventListener('change', () => {
     selectedAnnotation.group = selectedGroupSelect.value || null;
     updateLegend();
     setStatus('Raum geändert', true);
+  }
+});
+
+selectedModell.addEventListener('input', () => {
+  if (selectedAnnotation) {
+    selectedAnnotation.modell = selectedModell.value;
+  }
+});
+
+selectedHoehe.addEventListener('input', () => {
+  if (selectedAnnotation) {
+    selectedAnnotation.hoehe = selectedHoehe.value;
+  }
+});
+
+selectedBreite.addEventListener('input', () => {
+  if (selectedAnnotation) {
+    selectedAnnotation.breite = selectedBreite.value;
+  }
+});
+
+selectedBemerkung.addEventListener('input', () => {
+  if (selectedAnnotation) {
+    selectedAnnotation.bemerkung = selectedBemerkung.value;
   }
 });
 
@@ -1182,6 +1257,17 @@ document.getElementById('project-input').addEventListener('change', async (e) =>
     dCount = projectData.dCount || {};
     pageNames = projectData.pageNames || {};
     groups = projectData.groups || {};
+    
+    // Migrate annotations to include new fields (for backward compatibility)
+    Object.values(annotations).forEach(pageAnnos => {
+      pageAnnos.forEach(anno => {
+        if (anno.modell === undefined) anno.modell = '';
+        if (anno.hoehe === undefined) anno.hoehe = '';
+        if (anno.breite === undefined) anno.breite = '';
+        if (anno.bemerkung === undefined) anno.bemerkung = '';
+      });
+    });
+    
     updateGroupSelect();
     updateSelectedGroupSelect();
     
@@ -1349,7 +1435,11 @@ document.getElementById('btn-excel-export').addEventListener('click', () => {
         annotationsByType[anno.type].push({
           'ID': anno.label,
           'Stockwerk': pageNames[page] || '',
-          'Raum': anno.group ? (groups[anno.group] || '') : ''
+          'Raum': anno.group ? (groups[anno.group] || '') : '',
+          'Modell': anno.modell || '',
+          'Höhe (cm)': anno.hoehe || '',
+          'Breite (cm)': anno.breite || '',
+          'Bemerkung': anno.bemerkung || ''
         });
       }
     });
@@ -1378,6 +1468,61 @@ document.getElementById('btn-excel-export').addEventListener('click', () => {
   XLSX.writeFile(workbook, projectName + '_annotationen.xlsx');
   
   setStatus('Excel exportiert', true);
+});
+
+// --- Sidebar Resizer ---
+let isResizing = false;
+
+resizer.addEventListener('mousedown', (e) => {
+  isResizing = true;
+  resizer.classList.add('resizing');
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+});
+
+resizer.addEventListener('touchstart', (e) => {
+  isResizing = true;
+  resizer.classList.add('resizing');
+  e.preventDefault();
+}, { passive: false });
+
+document.addEventListener('mousemove', (e) => {
+  if (!isResizing) return;
+  
+  const mainRect = document.getElementById('main').getBoundingClientRect();
+  const newWidth = mainRect.right - e.clientX;
+  
+  if (newWidth >= 180 && newWidth <= 500) {
+    sidebar.style.width = newWidth + 'px';
+  }
+});
+
+document.addEventListener('touchmove', (e) => {
+  if (!isResizing) return;
+  e.preventDefault();
+  
+  const mainRect = document.getElementById('main').getBoundingClientRect();
+  const newWidth = mainRect.right - e.touches[0].clientX;
+  
+  if (newWidth >= 180 && newWidth <= 500) {
+    sidebar.style.width = newWidth + 'px';
+  }
+}, { passive: false });
+
+document.addEventListener('mouseup', () => {
+  if (isResizing) {
+    isResizing = false;
+    resizer.classList.remove('resizing');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }
+});
+
+document.addEventListener('touchend', () => {
+  if (isResizing) {
+    isResizing = false;
+    resizer.classList.remove('resizing');
+  }
 });
 
 window.addEventListener('resize', () => { if (pdfDocs.length > 0) drawAnnotations(); });
