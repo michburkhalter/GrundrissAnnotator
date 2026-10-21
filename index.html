@@ -395,13 +395,13 @@ Licensed under the MIT License
     <input type="file" accept=".pdf" id="file-input" multiple style="position:absolute;opacity:0;width:1px;height:1px;">
   </label>
   <div class="t-sep"></div>
-  <button class="btn active" id="btn-fenster">◻ Fenster</button>
+  <button class="btn" id="btn-fenster">◻ Fenster</button>
   <button class="btn" id="btn-heizung">▣ Heizkörper</button>
   <button class="btn" id="btn-tuer">⬡ Tür</button>
   <button class="btn" id="btn-haustechnik">⚙ Haustechnik</button>
   <button class="btn" id="btn-diverses">◆ Diverses</button>
   <button class="btn" id="btn-move">✥ Verschieben</button>
-  <button class="btn" id="btn-select">✕ Selektieren</button>
+  <button class="btn active" id="btn-select">✕ Selektieren</button>
   <div class="t-sep"></div>
   <button class="btn btn-icon" id="zoom-out">−</button>
   <span id="zoom-label">100%</span>
@@ -545,7 +545,7 @@ let pdfDocs = [], currentPage = 1, zoom = 1.0;
 let annotations = {}, fCount = {}, hCount = {}, tCount = {}, htCount = {}, dCount = {};
 let pageNames = {}; // Store page names
 let groups = {}; // Store group names (rooms)
-let mode = 'fenster';
+let mode = 'select';
 let dragging = null;
 let loadedFileNames = [];
 let pdfFileData = [];
@@ -1064,6 +1064,9 @@ groupSelect.addEventListener('change', () => {
 
 // Initialize group select
 updateGroupSelect();
+
+// Initialize mode to select
+setMode('select');
 
 // --- Selection Event Listeners ---
 selectedGroupSelect.addEventListener('change', () => {
