@@ -471,8 +471,16 @@ Licensed under the MIT License
           </select>
         </div>
         <div style="margin-bottom:8px;">
+          <label style="font-size:11px;color:#666;">Hersteller:</label>
+          <input type="text" id="selected-hersteller" style="width:100%;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:'DM Mono',monospace;background:var(--bg);">
+        </div>
+        <div style="margin-bottom:8px;">
           <label style="font-size:11px;color:#666;">Modell:</label>
           <input type="text" id="selected-modell" style="width:100%;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:'DM Mono',monospace;background:var(--bg);">
+        </div>
+        <div style="margin-bottom:8px;">
+          <label style="font-size:11px;color:#666;">Baujahr:</label>
+          <input type="text" id="selected-baujahr" style="width:100%;padding:4px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:'DM Mono',monospace;background:var(--bg);">
         </div>
         <div style="margin-bottom:8px;">
           <label style="font-size:11px;color:#666;">Höhe (cm):</label>
@@ -513,7 +521,7 @@ Licensed under the MIT License
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // Version - Increment on each build
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.7.0';
 
 // Set version display
 document.addEventListener('DOMContentLoaded', () => {
@@ -565,7 +573,9 @@ const selectionPanel = document.getElementById('selection-panel');
 const selectedGroupSelect = document.getElementById('selected-group-select');
 const selectedId = document.getElementById('selected-id');
 const selectedType = document.getElementById('selected-type');
+const selectedHersteller = document.getElementById('selected-hersteller');
 const selectedModell = document.getElementById('selected-modell');
+const selectedBaujahr = document.getElementById('selected-baujahr');
 const selectedHoehe = document.getElementById('selected-hoehe');
 const selectedBreite = document.getElementById('selected-breite');
 const selectedTypenschild = document.getElementById('selected-typenschild');
@@ -773,7 +783,7 @@ function startInteraction(e) {
       label = `D${String(nextDCount).padStart(2,'0')}`;  
       type = 'diverses'; 
     }
-    getPageAnnos().push({ type, x: pos.x, y: pos.y, label, page: p, group: groupSelect.value || null, modell: '', hoehe: '', breite: '', typenschild: '', bemerkung: '' });
+    getPageAnnos().push({ type, x: pos.x, y: pos.y, label, page: p, group: groupSelect.value || null, hersteller: '', modell: '', baujahr: '', hoehe: '', breite: '', typenschild: '', bemerkung: '' });
     drawAnnotations(); updateLegend();
   }
 }
@@ -915,7 +925,9 @@ function renumberAnnotations() {
       label: anno.label,
       page: anno.page,
       group: anno.group || null,
+      hersteller: anno.hersteller || '',
       modell: anno.modell || '',
+      baujahr: anno.baujahr || '',
       hoehe: anno.hoehe || '',
       breite: anno.breite || '',
       typenschild: anno.typenschild || '',
@@ -988,9 +1000,11 @@ function showSelectionPanel(annotation) {
   
   updateSelectedGroupSelect();
   selectedGroupSelect.value = annotation.group || '';
-  
+
   // Populate new fields
+  selectedHersteller.value = annotation.hersteller || '';
   selectedModell.value = annotation.modell || '';
+  selectedBaujahr.value = annotation.baujahr || '';
   selectedHoehe.value = annotation.hoehe || '';
   selectedBreite.value = annotation.breite || '';
   selectedTypenschild.value = annotation.typenschild || '';
@@ -1044,9 +1058,21 @@ selectedGroupSelect.addEventListener('change', () => {
   }
 });
 
+selectedHersteller.addEventListener('input', () => {
+  if (selectedAnnotation) {
+    selectedAnnotation.hersteller = selectedHersteller.value;
+  }
+});
+
 selectedModell.addEventListener('input', () => {
   if (selectedAnnotation) {
     selectedAnnotation.modell = selectedModell.value;
+  }
+});
+
+selectedBaujahr.addEventListener('input', () => {
+  if (selectedAnnotation) {
+    selectedAnnotation.baujahr = selectedBaujahr.value;
   }
 });
 
@@ -1274,7 +1300,9 @@ document.getElementById('project-input').addEventListener('change', async (e) =>
     // Migrate annotations to include new fields (for backward compatibility)
     Object.values(annotations).forEach(pageAnnos => {
       pageAnnos.forEach(anno => {
+        if (anno.hersteller === undefined) anno.hersteller = '';
         if (anno.modell === undefined) anno.modell = '';
+        if (anno.baujahr === undefined) anno.baujahr = '';
         if (anno.hoehe === undefined) anno.hoehe = '';
         if (anno.breite === undefined) anno.breite = '';
         if (anno.typenschild === undefined) anno.typenschild = '';
@@ -1450,7 +1478,9 @@ document.getElementById('btn-excel-export').addEventListener('click', () => {
           'ID': anno.label,
           'Stockwerk': pageNames[page] || '',
           'Raum': anno.group ? (groups[anno.group] || '') : '',
+          'Hersteller': anno.hersteller || '',
           'Modell': anno.modell || '',
+          'Baujahr': anno.baujahr || '',
           'Höhe (cm)': anno.hoehe || '',
           'Breite (cm)': anno.breite || '',
           'Typenschild': anno.typenschild || '',
