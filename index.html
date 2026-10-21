@@ -581,6 +581,7 @@ const selectedBreite = document.getElementById('selected-breite');
 const selectedTypenschild = document.getElementById('selected-typenschild');
 const selectedBemerkung = document.getElementById('selected-bemerkung');
 let selectedAnnotation = null;
+let selectedAnnotationIndex = -1;
 
 const RADIUS = 14;
 const COLORS = {
@@ -647,7 +648,7 @@ function drawMarker(ctx, ax, ay, label, type, r, isHighlighted) {
     ctx.stroke();
     
     // Enhanced text
-    ctx.fillStyle = '#FFFFFF'; // White text for high contrast on petrol
+    ctx.fillStyle = '#004444'; // Dark teal text for better contrast
     ctx.font = `bold ${label.length > 3 ? 11 : 12}px 'DM Mono', monospace`;
   } else {
     // Normal marker
@@ -717,10 +718,10 @@ async function renderPage() {
   
   // Update page name input
   pageNameInput.value = pageNames[currentPage] || '';
-  
+
   // Hide selection panel when changing pages
   hideSelectionPanel();
-  
+
   hitLayer.style.width  = vp.width + 'px';
   hitLayer.style.height = vp.height + 'px';
   drawAnnotations();
@@ -806,10 +807,19 @@ document.addEventListener('touchmove', (e) => {
   drawAnnotations(dragging.idx);
 }, { passive: false });
 document.addEventListener('mouseup', () => {
-  if (dragging) { dragging = null; hitLayer.style.cursor = modeConfig[mode].cursor; drawAnnotations(); updateLegend(); }
+  if (dragging) {
+    dragging = null;
+    hitLayer.style.cursor = modeConfig[mode].cursor;
+    drawAnnotations(selectedAnnotationIndex >= 0 ? selectedAnnotationIndex : undefined);
+    updateLegend();
+  }
 });
 document.addEventListener('touchend', () => {
-  if (dragging) { dragging = null; drawAnnotations(); updateLegend(); }
+  if (dragging) {
+    dragging = null;
+    drawAnnotations(selectedAnnotationIndex >= 0 ? selectedAnnotationIndex : undefined);
+    updateLegend();
+  }
 });
 
 // --- Legend ---
@@ -986,9 +996,10 @@ function updateSelectedGroupSelect() {
 
 function showSelectionPanel(annotation) {
   selectedAnnotation = annotation;
+  selectedAnnotationIndex = getPageAnnos().indexOf(annotation);
   selectionPanel.style.display = 'block';
   selectedId.textContent = annotation.label;
-  
+
   const typeNames = {
     fenster: 'Fenster',
     heizung: 'Heizkörper',
@@ -997,7 +1008,7 @@ function showSelectionPanel(annotation) {
     diverses: 'Diverses'
   };
   selectedType.textContent = typeNames[annotation.type] || annotation.type;
-  
+
   updateSelectedGroupSelect();
   selectedGroupSelect.value = annotation.group || '';
 
@@ -1009,11 +1020,16 @@ function showSelectionPanel(annotation) {
   selectedBreite.value = annotation.breite || '';
   selectedTypenschild.value = annotation.typenschild || '';
   selectedBemerkung.value = annotation.bemerkung || '';
+
+  // Highlight the selected annotation
+  drawAnnotations(selectedAnnotationIndex);
 }
 
 function hideSelectionPanel() {
   selectionPanel.style.display = 'none';
   selectedAnnotation = null;
+  selectedAnnotationIndex = -1;
+  drawAnnotations();
 }
 
 // --- Group Management ---
@@ -1054,6 +1070,7 @@ selectedGroupSelect.addEventListener('change', () => {
   if (selectedAnnotation) {
     selectedAnnotation.group = selectedGroupSelect.value || null;
     updateLegend();
+    drawAnnotations(selectedAnnotationIndex);
     setStatus('Raum geändert', true);
   }
 });
@@ -1100,6 +1117,15 @@ selectedBemerkung.addEventListener('input', () => {
   }
 });
 
+// Redraw with highlight when user interacts with selected annotation
+document.querySelectorAll('#selection-panel input, #selection-panel textarea').forEach(el => {
+  el.addEventListener('focus', () => {
+    if (selectedAnnotationIndex >= 0) {
+      drawAnnotations(selectedAnnotationIndex);
+    }
+  });
+});
+
 document.getElementById('btn-delete-selected').addEventListener('click', () => {
   if (selectedAnnotation) {
     const annos = getPageAnnos();
@@ -1111,7 +1137,7 @@ document.getElementById('btn-delete-selected').addEventListener('click', () => {
       if (selectedAnnotation.type === 'tuer'    && tCount[currentPage] > 0) tCount[currentPage]--;
       if (selectedAnnotation.type === 'haustechnik' && htCount[currentPage] > 0) htCount[currentPage]--;
       if (selectedAnnotation.type === 'diverses' && dCount[currentPage] > 0) dCount[currentPage]--;
-      
+
       renumberAnnotations();
       hideSelectionPanel();
       drawAnnotations();
